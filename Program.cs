@@ -10,7 +10,7 @@ namespace npu
 		const string npuProgramJson = @"
 		{
 			""irVersion"": 7,
-			""producerName"": ""Copilot"",
+			""producerName"": ""Jim"",
 			""opsetImport"": [
 				{
 				""domain"": """",
@@ -71,13 +71,15 @@ namespace npu
 
 		static void Main(string[] args)
 		{
+			// load the model
+
 			var model = ModelProto.Parser.ParseJson(npuProgramJson);
+
+			// create the input vectors
 
 			const int batchSize = 5;
 			var inputTensor = new DenseTensor<float>(new[] { batchSize, 4, 1 });
 
-
-			// Fill the tensor manually
 			float[,] vectors = new float[,]
 			{
 				{ 1, 2, 3, 4 },
@@ -95,35 +97,45 @@ namespace npu
 				}
 			}
 
-			var weightTensor = new DenseTensor<float>(new[] { 4, 4 });
+			// create the input matrix
+
+			var matrixTensor = new DenseTensor<float>(new[] { 4, 4 });
 
 			float[,] matrix = new float[,]
 			{
-				{ 1,0,0,0 },
-				{ 0,1,0,0 },
-				{ 0,0,1,0 },
-				{ 0,0,0,1 }
+				{ 1, 0, 0, 0 },
+				{ 0, 1, 0, 0 },
+				{ 0, 0, 1, 0 },
+				{ 0, 0, 0, 1 }
 			};
 			for (int b = 0; b < 4; b++)
 			{
 				for (int i = 0; i < 4; i++)
 				{
-					weightTensor[b, i] = matrix[b, i];
+					matrixTensor[b, i] = matrix[b, i];
 				}
 			}
+
+			// create the session
 
 			var options = new SessionOptions();
 			options.AppendExecutionProvider_DML(); // DirectML auto-selects NPU if available
 
 			using var session = new InferenceSession(model.ToByteArray(), options);
 
+			// set the inputs
+
 			var inputs = new List<NamedOnnxValue>
 			{
 				NamedOnnxValue.CreateFromTensor("X", inputTensor),
-				NamedOnnxValue.CreateFromTensor("W", weightTensor)
+				NamedOnnxValue.CreateFromTensor("W", matrixTensor)
 			};
 
+			// run the model
+
 			using var results = session.Run(inputs);
+
+			// show the outputs
 
 			var outputTensor = results[0].AsTensor<float>();
 			var outputArray = outputTensor.ToArray();
