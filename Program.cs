@@ -75,7 +75,7 @@ namespace npu
 
 			var model = ModelProto.Parser.ParseJson(npuProgramJson);
 
-			// create the input vectors
+			// create the input vectors (by manually copying the values into the input)
 
 			const int batchSize = 5;
 			var inputTensor = new DenseTensor<float>(new[] { batchSize, 4, 1 });
@@ -97,24 +97,10 @@ namespace npu
 				}
 			}
 
-			// create the input matrix
+			// create the input matrix (by mapping the matrix array into a Memory span)
 
-			var matrixTensor = new DenseTensor<float>(new[] { 4, 4 });
-
-			float[,] matrix = new float[,]
-			{
-				{ 1, 0, 0, 0 },
-				{ 0, 1, 0, 0 },
-				{ 0, 0, 1, 0 },
-				{ 0, 0, 0, 1 }
-			};
-			for (int b = 0; b < 4; b++)
-			{
-				for (int i = 0; i < 4; i++)
-				{
-					matrixTensor[b, i] = matrix[b, i];
-				}
-			}
+			float[] matrix2 = {1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 };
+			var matrixTensor = new DenseTensor<float>(new Memory<float>(matrix2), new[] { 4, 4 });
 
 			// create the session
 
