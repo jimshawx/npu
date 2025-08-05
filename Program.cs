@@ -8,70 +8,66 @@ namespace npu
 	public class Program
 	{
 		const string npuProgramJson = @"
-        {
-              ""irVersion"": 7,
-              ""producerName"": ""Copilot"",
-             ""opsetImport"": [
-                {
-                  ""domain"": """",
-                  ""version"": 13
-                }
-              ],
-              ""graph"": {
-                ""name"": ""BatchedMatMul"",
-                ""input"": [
-                  {
-                    ""name"": ""X"",
-                    ""type"": {
-                      ""tensorType"": {
-                        ""elemType"": ""1"",
-                        ""shape"": {
-                          ""dim"": [
-                            { ""dimParam"": ""batch"" },
-                            { ""dimValue"": 4 },
-                            { ""dimValue"": 1 }
-                          ]
-                        }
-                      }
-                    }
-                  }
-                ],
-                ""output"": [
-                  {
-                    ""name"": ""Y"",
-                    ""type"": {
-                      ""tensorType"": {
-                        ""elemType"": ""1"",
-                        ""shape"": {
-                          ""dim"": [
-                            { ""dimParam"": ""batch"" },
-                            { ""dimValue"": 4 },
-                            { ""dimValue"": 1 }
-                          ]
-                        }
-                      }
-                    }
-                  }
-                ],
-                ""initializer"": [
-                  {
-                    ""name"": ""W"",
-                    ""dims"": [4, 4],
-                    ""dataType"": 1,
-                    ""floatData"": [2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 2.0]
-                  }
-                ],
-                ""node"": [
-                  {
-                    ""input"": [""W"", ""X""],
-                    ""output"": [""Y""],
-                    ""name"": ""MatMulNode"",
-                    ""opType"": ""MatMul""
-                  }
-                ]
-              }
-            }
-        ";
+		{
+			""irVersion"": 7,
+			""producerName"": ""Copilot"",
+			""opsetImport"": [
+				{
+				""domain"": """",
+				""version"": 13
+				}
+			],
+			""graph"": {
+				""name"": ""BatchedMatMul"",
+				""input"": [
+				{
+					""name"": ""X"",
+					""type"": {
+					""tensorType"": {
+						""elemType"": ""1"",
+						""shape"": {
+						""dim"": [
+							{ ""dimParam"": ""batch"" },
+							{ ""dimValue"": 4 },
+							{ ""dimValue"": 1 }
+						]
+						}
+					}
+					}
+				},
+				{
+					""name"": ""W"",
+					""type"": { ""tensorType"": { ""elemType"": 1, ""shape"": { ""dim"": [ { ""dimValue"": 4 } , { ""dimValue"": 4 }  ] } } }
+					}
+				],
+				""output"": [
+				{
+					""name"": ""Y"",
+					""type"": {
+					""tensorType"": {
+						""elemType"": ""1"",
+						""shape"": {
+						""dim"": [
+							{ ""dimParam"": ""batch"" },
+							{ ""dimValue"": 4 },
+							{ ""dimValue"": 1 }
+						]
+						}
+					}
+					}
+				}
+				],
+				""node"": [
+				{
+					""input"": [""W"", ""X""],
+					""output"": [""Y""],
+					""name"": ""MatMulNode"",
+					""opType"": ""MatMul""
+				}
+				]
+			}
+			}
+		";
 
 		static void Main(string[] args)
 		{
@@ -79,6 +75,7 @@ namespace npu
 
 			const int batchSize = 5;
 			var inputTensor = new DenseTensor<float>(new[] { batchSize, 4, 1 });
+
 
 			// Fill the tensor manually
 			float[,] vectors = new float[,]
@@ -98,6 +95,23 @@ namespace npu
 				}
 			}
 
+			var weightTensor = new DenseTensor<float>(new[] { 4, 4 });
+
+			float[,] matrix = new float[,]
+			{
+				{ 1,0,0,0 },
+				{ 0,1,0,0 },
+				{ 0,0,1,0 },
+				{ 0,0,0,1 }
+			};
+			for (int b = 0; b < 4; b++)
+			{
+				for (int i = 0; i < 4; i++)
+				{
+					weightTensor[b, i] = matrix[b, i];
+				}
+			}
+
 			var options = new SessionOptions();
 			options.AppendExecutionProvider_DML(); // DirectML auto-selects NPU if available
 
@@ -105,7 +119,8 @@ namespace npu
 
 			var inputs = new List<NamedOnnxValue>
 			{
-				NamedOnnxValue.CreateFromTensor("X", inputTensor)
+				NamedOnnxValue.CreateFromTensor("X", inputTensor),
+				NamedOnnxValue.CreateFromTensor("W", weightTensor)
 			};
 
 			using var results = session.Run(inputs);
