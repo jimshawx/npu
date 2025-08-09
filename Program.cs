@@ -112,7 +112,7 @@ namespace npu
 			// create the session
 
 			var options = new SessionOptions();
-			options.AppendExecutionProvider_DML(); // DirectML auto-selects NPU if available
+			options.AppendExecutionProvider_OpenVINO("NPU");
 			//options.LogSeverityLevel = OrtLoggingLevel.ORT_LOGGING_LEVEL_VERBOSE;
 			using var session = new InferenceSession(model.ToByteArray(), options);
 
